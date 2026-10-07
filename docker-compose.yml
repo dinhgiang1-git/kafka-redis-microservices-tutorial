@@ -1,0 +1,115 @@
+services:
+  # =========================================================================
+  # 1. Hạ tầng cốt lõi (Core Infrastructure)
+  # =========================================================================
+
+  # Apache Kafka (KRaft mode, không cần Zookeeper)
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka-market
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_FLUSH_INTERVAL_MESSAGES: 10000
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    restart: always
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis-market
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: mongo-market
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 1211
+      MONGO_INITDB_DATABASE: market
+    restart: always
+
+  # =========================================================================
+  # 2. Dịch vụ Spring Boot Backend (Microservices)
+  # =========================================================================
+
+  # Market Simulator: Sinh giá 5 cặp coin và đẩy vào Kafka topic market.price
+  market-simulator:
+    build:
+      context: ./market-simulator
+      dockerfile: Dockerfile
+    container_name: market-simulator
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - kafka
+    restart: always
+
+  # Price Write Service: Lắng nghe Kafka, lưu MongoDB và cache Redis TTL 30s
+  price-write-service:
+    build:
+      context: ./price-write-service
+      dockerfile: Dockerfile
+    container_name: price-write-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_MONGODB_URI: mongodb://root:1211@mongodb:27017/market?authSource=admin
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      - kafka
+      - mongodb
+      - redis
+    restart: always
+
+  # Market Read Service: REST API đọc giá từ Redis (fallback MongoDB)
+  market-read-service:
+    build:
+      context: ./market-read-service
+      dockerfile: Dockerfile
+    container_name: market-read-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_MONGODB_URI: mongodb://root:1211@mongodb:27017/market?authSource=admin
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      - mongodb
+      - redis
+    restart: always
+
+  # =========================================================================
+  # 3. Giao diện người dùng Frontend (Web Dashboard)
+  # =========================================================================
+
+  # Market Web: React + Nginx phục vụ giao diện và reverse proxy /api/
+  market-web:
+    build:
+      context: ./market-web
+      dockerfile: Dockerfile
+    container_name: market-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - market-read-service
+    restart: always
