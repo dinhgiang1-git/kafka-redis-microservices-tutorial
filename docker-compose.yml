@@ -40,7 +40,7 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 1211
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}
       MONGO_INITDB_DATABASE: market
     restart: always
 
@@ -72,7 +72,7 @@ services:
       - "8081:8081"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_MONGODB_URI: mongodb://root:1211@mongodb:27017/market?authSource=admin
+      SPRING_MONGODB_URI: mongodb://root:${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}@mongodb:27017/market?authSource=admin
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
     depends_on:
@@ -90,7 +90,7 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_MONGODB_URI: mongodb://root:1211@mongodb:27017/market?authSource=admin
+      SPRING_MONGODB_URI: mongodb://root:${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}@mongodb:27017/market?authSource=admin
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
     depends_on:

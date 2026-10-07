@@ -38,7 +38,11 @@ flowchart LR
 ### 1. Yêu cầu tiên quyết
 - Đã cài đặt và bật **Docker Desktop** (hoặc Docker Engine).
 
-### 2. Khởi chạy toàn bộ hệ thống bằng 1 lệnh duy nhất:
+### 2. Cấu hình biến môi trường
+
+Sao chép `.env.example` thành `.env`, sau đó thay `change-me` bằng mật khẩu MongoDB dùng cho máy của bạn.
+
+### 3. Khởi chạy toàn bộ hệ thống bằng 1 lệnh duy nhất:
 
 Tại thư mục gốc của dự án:
 
@@ -52,20 +56,20 @@ Lệnh này sẽ tự động:
 3. Build frontend React và cấu hình Nginx.
 4. Nối tất cả các dịch vụ vào cùng mạng `bridge` nội bộ.
 
-### 3. Kiểm tra trạng thái:
+### 4. Kiểm tra trạng thái:
 
 ```bash
 docker compose ps
 ```
 
-### 4. Truy cập dịch vụ:
+### 5. Truy cập dịch vụ:
 
 - 📊 **Web Dashboard:** [http://localhost:3000](http://localhost:3000)
 - 🔌 **API lấy danh sách giá:** [http://localhost:8082/api/prices](http://localhost:8082/api/prices)
 - 🔌 **API lấy một cặp coin:** [http://localhost:8082/api/prices/BTC/USDT](http://localhost:8082/api/prices/BTC/USDT)
 - 🔌 **API SSE Streaming:** [http://localhost:8082/api/prices/stream](http://localhost:8082/api/prices/stream)
 
-### 5. Dừng hệ thống:
+### 6. Dừng hệ thống:
 
 ```bash
 docker compose down
